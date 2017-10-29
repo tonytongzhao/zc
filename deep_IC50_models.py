@@ -59,6 +59,9 @@ def RMSE(label, pred):
         n+=1.0
     return np.sqrt(ret/n)
 
+def pcc(label, pred):
+    return np.corrcoef(pred.ravel(), label.ravel())[0,1]
+
 def get_data(feedback_data, cid2feature, num_features, batch_size, validation=0.1):
     if validation:
         valid_ins = np.random.choice(feedback_data.shape[0], int(feedback_data.shape[0]*validation))
@@ -73,17 +76,20 @@ def train(feedback_data, cid2feature, network, scoreFile, num_hidden, num_featur
     model.init_params(initializer=mx.init.Uniform(scale=.1))
     rootLogger = logging.getLogger()
     rootLogger.setLevel(logging.DEBUG)
-    fileName = scoreFile+'-'+'-'.join(map(str, num_hidden))+'-'+str(batch_size)+'-'+str(num_epoch)+'-'+str(learning_rate)
+	fileName = scoreFile+'-'+'-'.join(map(str, num_hidden))+'-'+str(batch_size)+'-'+str(num_epoch)+'-'+str(learning_rate)
     logPath='./results'
-    fileHandler = logging.FileHandler("{0}/{1}.log".format(logPath, fileName))
+    if not os.path.exists('./results/%s'%(fileName)):
+        os.mkdir('./results/%s'%(fileName))
+    fileHandler = logging.FileHandler("{0}/{1}.log".format(logPath, fileName), mode='w')
     rootLogger.addHandler(fileHandler)
 
     consoleHandler = logging.StreamHandler()
     rootLogger.addHandler(consoleHandler)
-
+    #model.save('./results/%s/%s-model'%(fileName, scoreFile))
 
     model.init_optimizer(optimizer='adam', optimizer_params={'learning_rate':learning_rate})
-    model.fit(train,eval_data=test, num_epoch=num_epoch, eval_metric='rmse', batch_end_callback=mx.callback.Speedometer(500) )
+    model.fit(train,eval_data=test, num_epoch=num_epoch, eval_metric=['rmse', pcc], batch_end_callback=mx.callback.Speedometer(500),epoch_end_callback  = mx.callback.do_checkpoint("./results/%s/%s-model"%(fileName, scoreFile), 1) )
+
 
 def build_network(num_features, num_drug, num_hidden):
     cell=mx.sym.Variable('cell')
