@@ -89,7 +89,28 @@ def train(feedback_data, cid2feature, network, scoreFile, num_hidden, num_featur
     #model.save('./results/%s/%s-model'%(fileName, scoreFile))
 
     model.init_optimizer(optimizer='adam', optimizer_params={'learning_rate':learning_rate})
-    model.fit(train,eval_data=test, num_epoch=num_epoch, eval_metric=['rmse', pcc], batch_end_callback=mx.callback.Speedometer(500),epoch_end_callback  = mx.callback.do_checkpoint("./results/%s/%s-model"%(fileName, scoreFile), 1) )
+    model.fit(train,eval_data=test, num_epoch=num_epoch, eval_metric=['rmse', pcc], epoch_end_callback  = mx.callback.do_checkpoint("./results/%s/%s-model"%(fileName, scoreFile), 1) )
+    '''
+    for k in xrange(len(test.data)/batch_size):
+        cells=[]
+        drugs=[]
+        scores=[]
+        #Generate each batch data and yield the result
+        for i in xrange(batch_size):
+            j=k*batch_size+i
+            cid, did, score=test.data[j]
+            cells.append(cid2feature[cid])
+            drugs.append(did)
+            scores.append(score)
+        data_all=[mx.nd.array(cells), mx.nd.array(drugs)]
+        label_all=[mx.nd.array(scores)]
+        data_names=['cell', 'drug']
+        label_names=['score']
+        data_batch=Batch(data_names, data_all, label_names, label_all)
+        model.forward(data_batch, is_train=False)
+        prob = model.get_outputs()[0].asnumpy()
+        print prob
+    ''' 
 
 def build_network(num_features, num_drug, num_hidden):
     cell=mx.sym.Variable('cell')
@@ -157,7 +178,7 @@ print '#Features, ', num_features
 print '#Scores, ', feedback_data.shape[0]
 num_hidden=[512,256,128]
 batch_size=500
-num_epoch=200
+num_epoch=100
 learning_rate=0.001
 num_cell = len(cname2id)
 num_drug = len(dname2id)
