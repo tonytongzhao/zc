@@ -72,7 +72,6 @@ def train(feedback_data, cid2feature, network, scoreFile, num_hidden, num_featur
     model.bind(data_shapes=train.provide_data, label_shapes=train.provide_label)
     model.init_params(initializer=mx.init.Uniform(scale=.1))
     rootLogger = logging.getLogger()
-    print learning_rate
     rootLogger.setLevel(logging.DEBUG)
     fileName = scoreFile+'-'+'-'.join(map(str, num_hidden))+'-'+str(batch_size)+'-'+str(num_epoch)+'-'+str(learning_rate)
     logPath='./results'
